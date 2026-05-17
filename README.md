@@ -60,14 +60,14 @@ GPU-heavy detectors are **skipped automatically** when no CUDA GPU is detected.
 ### Feature Importance (SMS Spam)
 
 Each cell shows the marginal AUROC gain from including that feature (averaged over
-all combinations that do/don't contain it). Red = harmful, blue = helpful.
+all combinations that do/don't contain it). Red = helpful, blue = harmful.
 
 ![Feature importance heatmap](figures/feature_importance.png)
 
 ### Best Attention Combo vs. BERT Baseline
 
 Each cell shows our best attention-only AUROC minus the paper's BERT embedding
-baseline for that detector. Blue = attention beats embeddings.
+baseline for that detector. Red = attention beats embeddings, blue = embeddings win.
 
 ![Gain vs BERT baseline](figures/gain_vs_bert.png)
 

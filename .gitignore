@@ -27,3 +27,5 @@ Thumbs.db
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
+
+other-files/*
