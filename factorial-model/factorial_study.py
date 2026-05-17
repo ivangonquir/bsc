@@ -26,11 +26,21 @@ DATA_TYPE = {"sms_spam": "lexical", "email_spam": "lexical", "bbc": "semantic"}
 DETECTORS = ["LOF", "DeepSVDD", "ECOD", "IForest", "SO-GAAL", "AE", "VAE", "LUNAR"]
 FEATURES  = ["has_cls_token_pca", "has_cls_mean", "has_cls_max",
              "has_cls_std", "has_head_entropy", "has_diag_mean"]
+DATASET_DIRS = {
+    "sms_spam":   "sms-spam",
+    "email_spam": "email_spam-out",
+    "bbc":        "bbc-out",
+}
 
 # ---------------------------------------------------------------- load
+import os
+_here = os.path.dirname(os.path.abspath(__file__))
+_root = os.path.dirname(_here)
+
 frames = []
 for ds in DATASETS:
-    d = pd.read_csv(f"{ds}_attn_ablation_all_detectors.csv")
+    path = os.path.join(_root, DATASET_DIRS[ds], f"{ds}_attn_ablation_all_detectors.csv")
+    d = pd.read_csv(path)
     for c in ["has_cls_token_raw", "has_cls_token_pca"]:
         d[c] = d[c].fillna(0).astype(int)
     d["dataset"] = ds
