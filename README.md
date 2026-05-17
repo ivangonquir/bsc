@@ -51,6 +51,10 @@ Five attention blocks extracted from the last BERT layer, plus two CLS-token bas
 
 GPU-heavy detectors are **skipped automatically** when no CUDA GPU is detected.
 
+> **Recommended**: a CUDA-capable GPU. Without one, DeepSVDD, AE, VAE, LUNAR, and
+> SO-GAAL are skipped and results will be incomplete. CPU-only runs are fine for
+> LOF, ECOD, and IForest.
+
 ## Results
 
 ### Feature Importance (SMS Spam)
