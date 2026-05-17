@@ -24,10 +24,16 @@ PAPER_OPENAI = {
 
 DETECTORS = ["LOF","DeepSVDD","ECOD","IForest","SO-GAAL","AE","VAE","LUNAR"]
 DATASETS  = ["sms_spam", "email_spam", "bbc"]
+DATASET_DIRS = {
+    "sms_spam":   "sms-spam",
+    "email_spam": "email_spam-out",
+    "bbc":        "bbc-out",
+}
 
 dfs = {}
 for ds in DATASETS:
-    d = pd.read_csv(f"{ds}_attn_ablation_all_detectors.csv")
+    path = f"{DATASET_DIRS[ds]}/{ds}_attn_ablation_all_detectors.csv"
+    d = pd.read_csv(path)
     d["has_cls_token_raw"] = d["has_cls_token_raw"].fillna(0).astype(int)
     d["has_cls_token_pca"] = d["has_cls_token_pca"].fillna(0).astype(int)
     dfs[ds] = d

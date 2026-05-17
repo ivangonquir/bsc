@@ -51,6 +51,33 @@ Five attention blocks extracted from the last BERT layer, plus two CLS-token bas
 
 GPU-heavy detectors are **skipped automatically** when no CUDA GPU is detected.
 
+## Results
+
+### Feature Importance (SMS Spam)
+
+Each cell shows the marginal AUROC gain from including that feature (averaged over
+all combinations that do/don't contain it). Red = harmful, blue = helpful.
+
+![Feature importance heatmap](figures/feature_importance.png)
+
+### Best Attention Combo vs. BERT Baseline
+
+Each cell shows our best attention-only AUROC minus the paper's BERT embedding
+baseline for that detector. Blue = attention beats embeddings.
+
+![Gain vs BERT baseline](figures/gain_vs_bert.png)
+
+## Key Findings
+
+- **Attention alone can beat embeddings**: `head_entropy` with LUNAR exceeds the
+  paper's BERT baseline on SMS Spam; SO-GAAL on attention-only reaches AUROC 0.85
+  using 12–48 dimensions versus 768–3072 for full embeddings.
+- **Detector–feature affinity**: density detectors (LOF, LUNAR) prefer
+  `head_entropy`; tree detectors prefer `cls_token_pca`; adversarial detectors
+  (SO-GAAL) benefit from `cls_mean` but are hurt by `cls_token`.
+- **Sub-additive interaction**: `cls_token × head_entropy` is redundant in 12/24
+  dataset × detector cells — they capture overlapping distributional signal.
+
 ## Installation
 
 ```bash
@@ -91,24 +118,27 @@ python factorial-model/factorial_study.py
 Fits main-effects and two-way interaction regression models (HC3 robust errors,
 BH FDR correction) across all dataset × detector cells.
 
-## Key Findings
+### 4. Generate figures
 
-- **Attention alone can beat embeddings**: `head_entropy` with LUNAR exceeds the
-  paper's BERT baseline on SMS Spam; SO-GAAL on attention-only reaches AUROC 0.85
-  using 12–48 dimensions versus 768–3072 for full embeddings.
-- **Detector–feature affinity**: density detectors (LOF, LUNAR) prefer
-  `head_entropy`; tree detectors prefer `cls_token_pca`; adversarial detectors
-  (SO-GAAL) benefit from `cls_mean` but are hurt by `cls_token`.
-- **Sub-additive interaction**: `cls_token × head_entropy` is redundant in 12/24
-  dataset × detector cells — they capture overlapping distributional signal.
+```bash
+python plot_results.py
+```
+
+Writes `figures/feature_importance.png` and `figures/gain_vs_bert.png`.
 
 ## Project Structure
 
 ```
-main.py                      # Core ablation study
+main.py                      # Entry point
+config.py                    # Dataset, model, and detector settings
+features.py                  # BERT attention extraction and feature caching
+detectors.py                 # Anomaly detector factory
+ablation.py                  # Feature matrix builder, ablation loop, importance
+plot_results.py              # Figure generation
 cross-dataset-analysis.py    # Cross-dataset replication
 factorial-model/
   factorial_study.py         # Factorial regression analysis
+figures/                     # Generated plots (run plot_results.py)
 sms-spam/                    # SMS Spam results
 email_spam-out/              # Email Spam results
 bbc-out/                     # BBC News results
