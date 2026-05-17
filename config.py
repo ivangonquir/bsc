@@ -1,13 +1,19 @@
+from dataclasses import dataclass
 import torch
 
 HF_REPO    = "kendx/NLP-ADBench"
 MODEL_NAME = "bert-base-uncased"
-SUBDATASET = "sms_spam"
-MAX_LEN    = 32
 BATCH_SIZE = 16
 DEVICE     = "cuda" if torch.cuda.is_available() else "cpu"
 
 ATTENTION_BLOCKS = ["cls_mean", "cls_max", "cls_std", "head_entropy", "diag_mean"]
+
+# Per-dataset settings (max sequence length matched to the original paper).
+DATASET_CONFIG = {
+    "sms_spam":   {"max_len": 32},
+    "email_spam": {"max_len": 256},
+    "bbc":        {"max_len": 512},
+}
 
 # Neural-network detectors that are impractically slow without a GPU.
 GPU_HEAVY_DETECTORS = {"DeepSVDD", "AE", "VAE", "LUNAR", "SO-GAAL"}
@@ -26,13 +32,34 @@ else:
 DETERMINISTIC    = {"LOF", "ECOD", "LUNAR", "SO-GAAL"}
 STOCHASTIC_SEEDS = (0, 1, 2)
 
-FEATURE_FILE   = f"{SUBDATASET}_features_{len(ATTENTION_BLOCKS)}blocks_plus_cls_maxlen{MAX_LEN}.npz"
-RESULTS_CSV    = f"{SUBDATASET}_attn_ablation_all_detectors.csv"
-IMPORTANCE_CSV = f"{SUBDATASET}_attn_importance_all_detectors.csv"
-
-# Mapping from dataset name to its results directory
+# Mapping from dataset name to its results directory.
 DATASET_DIRS = {
     "sms_spam":   "sms-spam",
     "email_spam": "email_spam-out",
     "bbc":        "bbc-out",
 }
+
+
+@dataclass
+class RunConfig:
+    """All settings that vary per dataset run."""
+    subdataset:   str
+    max_len:      int
+    feature_file: str
+    results_csv:  str
+    importance_csv: str
+
+    @classmethod
+    def from_dataset(cls, dataset: str) -> "RunConfig":
+        if dataset not in DATASET_CONFIG:
+            raise ValueError(f"Unknown dataset '{dataset}'. "
+                             f"Choose from: {list(DATASET_CONFIG)}")
+        max_len = DATASET_CONFIG[dataset]["max_len"]
+        n_blocks = len(ATTENTION_BLOCKS)
+        return cls(
+            subdataset    = dataset,
+            max_len       = max_len,
+            feature_file  = f"{dataset}_features_{n_blocks}blocks_plus_cls_maxlen{max_len}.npz",
+            results_csv   = f"{dataset}_attn_ablation_all_detectors.csv",
+            importance_csv= f"{dataset}_attn_importance_all_detectors.csv",
+        )

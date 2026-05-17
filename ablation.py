@@ -9,15 +9,15 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, average_precision_score
 
-from config import ATTENTION_BLOCKS, DETECTOR_NAMES, RESULTS_CSV
+from config import ATTENTION_BLOCKS, DETECTOR_NAMES, RunConfig
 from features import load_or_extract
 from detectors import make_detector, seeds_for
 
 
-def load_existing_results():
-    if not os.path.exists(RESULTS_CSV):
+def load_existing_results(results_csv: str):
+    if not os.path.exists(results_csv):
         return pd.DataFrame(), set()
-    df = pd.read_csv(RESULTS_CSV)
+    df = pd.read_csv(results_csv)
     done = set(zip(df["combo"], df["detector"]))
     print(f"Resuming: {len(done)} (combo, detector) pairs already done")
     return df, done
@@ -71,9 +71,9 @@ def _eval_detector(det_name, Xtr, Xte, y_test):
     return aurocs, auprcs, runtimes
 
 
-def run_ablation():
+def run_ablation(run_cfg: RunConfig) -> pd.DataFrame:
     """Run the full ablation and return a DataFrame of results."""
-    train_b, test_b, y_test = load_or_extract()
+    train_b, test_b, y_test = load_or_extract(run_cfg)
     print(f"Test anomaly rate: {y_test.mean():.3f}")
     print(f"Train n={len(next(iter(train_b.values())))}, Test n={len(y_test)}")
     print("Block sizes: " + ", ".join(f"{b}={train_b[b].shape[1]}d" for b in ATTENTION_BLOCKS))
@@ -88,7 +88,7 @@ def run_ablation():
     total_fits = sum(len(seeds_for(d)) for d in DETECTOR_NAMES) * len(all_combos)
     print(f"\n{len(all_combos)} combos × {len(DETECTOR_NAMES)} detectors = {total_fits} total fits")
 
-    existing_df, done = load_existing_results()
+    existing_df, done = load_existing_results(run_cfg.results_csv)
     rows = existing_df.to_dict("records") if not existing_df.empty else []
 
     for i, combo in enumerate(all_combos, 1):
@@ -131,7 +131,7 @@ def run_ablation():
                   f"AUPRC {row['auprc_mean']:.4f} ± {row['auprc_std']:.4f}  "
                   f"({row['time_s']:.1f}s/fit, {row['n_seeds']} seeds)")
 
-            pd.DataFrame(rows).to_csv(RESULTS_CSV, index=False)
+            pd.DataFrame(rows).to_csv(run_cfg.results_csv, index=False)
 
     return pd.DataFrame(rows)
 
