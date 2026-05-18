@@ -113,9 +113,99 @@ def plot_gain_vs_bert(dfs: dict[str, pd.DataFrame], out_path: str) -> None:
     print(f"Saved {out_path}")
 
 
+def plot_feature_diagram(out_path: str) -> None:
+    """Schematic showing which part of the attention matrix each feature is computed from."""
+    import matplotlib.patches as mpatches
+
+    np.random.seed(0)
+    tokens = ["[CLS]", "spam", "click", "here", "now", "[SEP]"]
+    n = len(tokens)
+
+    # Synthetic attention weights for one head (softmax over rows).
+    logits = np.random.randn(n, n)
+    logits[0] = [-0.3, 1.5, 0.9, 0.2, 1.1, -0.4]  # make CLS row visually interesting
+    attn = np.exp(logits) / np.exp(logits).sum(axis=1, keepdims=True)
+
+    fig, (ax_mat, ax_leg) = plt.subplots(
+        1, 2, figsize=(13, 5.5), gridspec_kw={"width_ratios": [1, 0.75]}
+    )
+
+    # ── Left: attention matrix with overlays ──────────────────────────────────
+    im = ax_mat.imshow(attn, cmap="Blues", aspect="equal")
+    ax_mat.set_xticks(range(n))
+    ax_mat.set_yticks(range(n))
+    ax_mat.set_xticklabels(tokens, fontsize=10)
+    ax_mat.set_yticklabels(tokens, fontsize=10)
+    ax_mat.set_xlabel("Key  (attended-to token)", fontsize=10)
+    ax_mat.set_ylabel("Query  (attending token)", fontsize=10)
+    ax_mat.set_title("Attention matrix — one head, last BERT layer", fontsize=11, pad=10)
+    plt.colorbar(im, ax=ax_mat, shrink=0.8, label="Attention weight")
+
+    CLS_COLOR  = "#e74c3c"
+    DIAG_COLOR = "#27ae60"
+    ENT_COLOR  = "#8e44ad"
+
+    # Red overlay on CLS row (row 0) → cls_mean, cls_max, cls_std
+    ax_mat.add_patch(mpatches.Rectangle(
+        (-0.5, -0.5), n, 1, lw=2.5, ec=CLS_COLOR, fc=CLS_COLOR, alpha=0.2
+    ))
+
+    # Green overlay on diagonal → diag_mean
+    for i in range(n):
+        ax_mat.add_patch(mpatches.Rectangle(
+            (i - 0.5, i - 0.5), 1, 1, lw=2, ec=DIAG_COLOR, fc=DIAG_COLOR, alpha=0.3
+        ))
+
+    # Purple border around full matrix → head_entropy (spans all rows/heads)
+    ax_mat.add_patch(mpatches.Rectangle(
+        (-0.5, -0.5), n, n, lw=2.5, ec=ENT_COLOR, fc="none"
+    ))
+
+    # ── Right: feature legend ─────────────────────────────────────────────────
+    ax_leg.axis("off")
+    ax_leg.set_title("Extracted features", fontsize=11, pad=10)
+
+    groups = [
+        (CLS_COLOR,  "CLS row  (red overlay)", [
+            ("cls_mean",     "Mean attention weight from [CLS] to each token"),
+            ("cls_max",      "Max attention weight from [CLS] to any token"),
+            ("cls_std",      "Std deviation of [CLS] attention weights"),
+        ]),
+        (DIAG_COLOR, "Diagonal  (green overlay)", [
+            ("diag_mean",    "Mean of self-attention diagonal elements"),
+        ]),
+        (ENT_COLOR,  "Full matrix  (purple border)", [
+            ("head_entropy", "Shannon entropy of each head's row distributions,\n"
+                             "averaged over all heads and non-padding tokens"),
+        ]),
+    ]
+
+    y = 0.97
+    for color, label, features in groups:
+        ax_leg.text(0.0, y, label, fontsize=10, fontweight="bold", color=color,
+                    va="top", transform=ax_leg.transAxes)
+        y -= 0.07
+        for name, desc in features:
+            ax_leg.text(0.04, y, f"• {name}", fontsize=9.5, fontweight="bold",
+                        color="#2c3e50", va="top", transform=ax_leg.transAxes)
+            y -= 0.055
+            ax_leg.text(0.06, y, desc, fontsize=8.5, color="#555555",
+                        va="top", transform=ax_leg.transAxes)
+            y -= 0.075
+        y -= 0.03
+
+    plt.tight_layout()
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved {out_path}")
+
+
 if __name__ == "__main__":
     dfs = load_ablation_csvs()
 
+    plot_feature_diagram(
+        out_path=os.path.join(FIGURES_DIR, "feature_diagram.png"),
+    )
     plot_feature_importance(
         importance_csv=os.path.join(DATASET_DIRS["sms_spam"],
                                     "sms_spam_attn_importance_all_detectors.csv"),

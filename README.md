@@ -59,6 +59,13 @@ GPU-heavy detectors are **skipped automatically** when no CUDA GPU is detected.
 > SO-GAAL are skipped and results will be incomplete. CPU-only runs are fine for
 > LOF, ECOD, and IForest.
 
+## Feature Extraction
+
+The diagram below shows which part of the attention matrix each feature is computed
+from, for one head of the last BERT layer.
+
+![Feature extraction diagram](figures/feature_diagram.png)
+
 ## Results
 
 ### Feature Importance (SMS Spam)
