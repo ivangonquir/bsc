@@ -6,10 +6,14 @@ over 31 feature combinations and 8 detectors across three datasets.
 
 ## Motivation
 
-Standard embedding-based anomaly detection feeds the full 768-d CLS vector into a
-detector. Attention maps are far cheaper to store (12 heads × sequence-length
-scalars per layer) and may capture complementary distributional signals. This study
-tests that hypothesis systematically.
+This project extends and evaluates against the benchmark established by
+[NLP-ADBench](https://github.com/USC-FORTIS/NLP-ADBench) (Xu et al., 2023), which
+provides standardised anomaly detection benchmarks on text data using BERT and
+OpenAI embeddings as baselines. Rather than relying on the full CLS-token
+embedding, we investigate whether BERT attention patterns alone — far cheaper to
+store (12 heads × sequence-length scalars per layer) — can match or exceed those
+baselines. All AUROC results reported in the figures are compared directly against
+the NLP-ADBench paper's BERT-base and OpenAI embedding scores.
 
 ## Datasets
 
