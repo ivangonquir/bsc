@@ -116,23 +116,25 @@ def plot_gain_vs_bert(dfs: dict[str, pd.DataFrame], out_path: str) -> None:
 def plot_feature_diagram(out_path: str) -> None:
     """Schematic showing which part of the attention matrix each feature is computed from."""
     import matplotlib.patches as mpatches
+    import matplotlib.gridspec as gridspec
 
-    np.random.seed(0)
     tokens = ["[CLS]", "spam", "click", "here", "now", "[SEP]"]
     n = len(tokens)
 
-    # Synthetic attention weights for one head (softmax over rows).
-    logits = np.random.randn(n, n)
-    logits[0] = [-0.3, 1.5, 0.9, 0.2, 1.1, -0.4]  # make CLS row visually interesting
-    attn = np.exp(logits) / np.exp(logits).sum(axis=1, keepdims=True)
+    CLS_COLOR  = "#e74c3c"   # red
+    DIAG_COLOR = "#2ecc71"   # green
+    ENT_COLOR  = "#9b59b6"   # purple
+    BASE_COLOR = "#dfe6e9"   # light grey for unlabelled cells
 
-    fig, (ax_mat, ax_leg) = plt.subplots(
-        1, 2, figsize=(13, 5.5), gridspec_kw={"width_ratios": [1, 0.75]}
-    )
+    fig = plt.figure(figsize=(14, 6))
+    gs  = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1, 0.9], wspace=0.05)
+    ax_mat = fig.add_subplot(gs[0])
+    ax_leg = fig.add_subplot(gs[1])
 
-    # ── Left: attention matrix with overlays ──────────────────────────────────
-    # Grey base so coloured overlays are clearly distinguishable.
-    im = ax_mat.imshow(attn, cmap="Greys", aspect="equal", vmin=0)
+    # ── Left: pure colored-cell grid (no imshow) ──────────────────────────────
+    ax_mat.set_xlim(-0.5, n - 0.5)
+    ax_mat.set_ylim(n - 0.5, -0.5)   # row 0 at the top
+    ax_mat.set_aspect("equal")
     ax_mat.set_xticks(range(n))
     ax_mat.set_yticks(range(n))
     ax_mat.set_xticklabels(tokens, fontsize=10)
@@ -140,62 +142,98 @@ def plot_feature_diagram(out_path: str) -> None:
     ax_mat.set_xlabel("Key  (attended-to token)", fontsize=10)
     ax_mat.set_ylabel("Query  (attending token)", fontsize=10)
     ax_mat.set_title("Attention matrix — one head, last BERT layer", fontsize=11, pad=10)
-    plt.colorbar(im, ax=ax_mat, shrink=0.8, label="Attention weight")
+    ax_mat.tick_params(length=0)
+    for spine in ax_mat.spines.values():
+        spine.set_visible(False)
 
-    CLS_COLOR  = "#e74c3c"
-    DIAG_COLOR = "#2ecc71"
-    ENT_COLOR  = "#9b59b6"
+    for row in range(n):
+        for col in range(n):
+            if row == 0:
+                color = CLS_COLOR       # entire CLS query row → red
+            elif row == col:
+                color = DIAG_COLOR      # diagonal → green
+            else:
+                color = BASE_COLOR
+            ax_mat.add_patch(mpatches.FancyBboxPatch(
+                (col - 0.46, row - 0.46), 0.92, 0.92,
+                boxstyle="round,pad=0.02", lw=0,
+                fc=color, zorder=1,
+            ))
 
-    # Red overlay on CLS row (row 0) → cls_mean, cls_max, cls_std
+    # Purple thick border around whole matrix → head_entropy
     ax_mat.add_patch(mpatches.Rectangle(
-        (-0.5, -0.5), n, 1, lw=3, ec="#c0392b", fc=CLS_COLOR, alpha=0.55, zorder=2
+        (-0.5, -0.5), n, n, lw=5, ec=ENT_COLOR, fc="none", zorder=3
     ))
 
-    # Green overlay on diagonal → diag_mean
-    for i in range(n):
-        ax_mat.add_patch(mpatches.Rectangle(
-            (i - 0.5, i - 0.5), 1, 1, lw=2.5, ec="#27ae60", fc=DIAG_COLOR, alpha=0.65, zorder=2
-        ))
-
-    # Purple border around full matrix → head_entropy (spans all rows/heads)
-    ax_mat.add_patch(mpatches.Rectangle(
-        (-0.5, -0.5), n, n, lw=4, ec=ENT_COLOR, fc="none", zorder=3
-    ))
-
-    # ── Right: feature legend ─────────────────────────────────────────────────
+    # ── Right panel: feature legend + combination formula ─────────────────────
     ax_leg.axis("off")
-    ax_leg.set_title("Extracted features", fontsize=11, pad=10)
+
+    # Legend title
+    ax_leg.text(0.0, 1.0, "Extracted attention features", fontsize=11,
+                fontweight="bold", color="#2c3e50", va="top",
+                transform=ax_leg.transAxes)
 
     groups = [
-        (CLS_COLOR,  "CLS row  (red overlay)", [
-            ("cls_mean",     "Mean attention weight from [CLS] to each token"),
-            ("cls_max",      "Max attention weight from [CLS] to any token"),
-            ("cls_std",      "Std deviation of [CLS] attention weights"),
+        (CLS_COLOR,  "CLS row  (red cells)", [
+            ("cls_mean",     "Mean of [CLS] attention weights"),
+            ("cls_max",      "Max of [CLS] attention weights"),
+            ("cls_std",      "Std dev of [CLS] attention weights"),
         ]),
-        (DIAG_COLOR, "Diagonal  (green overlay)", [
-            ("diag_mean",    "Mean of self-attention diagonal elements"),
+        (DIAG_COLOR, "Diagonal  (green cells)", [
+            ("diag_mean",    "Mean self-attention diagonal"),
         ]),
         (ENT_COLOR,  "Full matrix  (purple border)", [
-            ("head_entropy", "Shannon entropy of each head's row distributions,\n"
-                             "averaged over all heads and non-padding tokens"),
+            ("head_entropy", "Shannon entropy per head,\n"
+                             "averaged over tokens & heads"),
         ]),
     ]
 
-    y = 0.97
+    y = 0.91
     for color, label, features in groups:
-        ax_leg.text(0.0, y, label, fontsize=10, fontweight="bold", color=color,
+        # Colored swatch + group label
+        ax_leg.add_patch(mpatches.Rectangle(
+            (0.0, y - 0.025), 0.045, 0.045,
+            fc=color, ec="none", transform=ax_leg.transAxes, zorder=2,
+        ))
+        ax_leg.text(0.06, y, label, fontsize=10, fontweight="bold", color=color,
                     va="top", transform=ax_leg.transAxes)
-        y -= 0.07
+        y -= 0.075
         for name, desc in features:
-            ax_leg.text(0.04, y, f"• {name}", fontsize=9.5, fontweight="bold",
+            ax_leg.text(0.06, y, f"• {name}", fontsize=9.5, fontweight="bold",
                         color="#2c3e50", va="top", transform=ax_leg.transAxes)
             y -= 0.055
-            ax_leg.text(0.06, y, desc, fontsize=8.5, color="#555555",
+            ax_leg.text(0.09, y, desc, fontsize=8.5, color="#555555",
                         va="top", transform=ax_leg.transAxes)
-            y -= 0.075
-        y -= 0.03
+            y -= 0.08
+        y -= 0.02
 
-    plt.tight_layout()
+    # ── Combination derivation box ────────────────────────────────────────────
+    box_top = y - 0.01
+    formula_lines = [
+        ("bold",   "#2c3e50", "How the 64 combinations are derived:"),
+        ("normal", "#444444", "5 attention features  →  2⁵ − 1 = 31 non-empty subsets"),
+        ("normal", "#444444", "+ 31 subsets each paired with PCA baseline"),
+        ("normal", "#444444", "+  1 PCA baseline alone"),
+        ("normal", "#444444", "+  1 raw BERT baseline (768-d CLS token)"),
+        ("bold",   "#2c3e50", "─" * 36),
+        ("bold",   "#2c3e50", "= 64 total feature combinations tested"),
+    ]
+    dy = 0.073
+    fy = box_top
+    for weight, color, text in formula_lines:
+        ax_leg.text(0.0, fy, text, fontsize=8.5, fontweight=weight, color=color,
+                    va="top", transform=ax_leg.transAxes, family="monospace")
+        fy -= dy
+
+    # Draw a box around the formula
+    box_h = len(formula_lines) * dy + 0.02
+    ax_leg.add_patch(mpatches.FancyBboxPatch(
+        (-0.02, fy), 1.02, box_h,
+        boxstyle="round,pad=0.01", lw=1.2,
+        ec="#aaaaaa", fc="#f8f9fa",
+        transform=ax_leg.transAxes, zorder=0,
+    ))
+
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved {out_path}")
