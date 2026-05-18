@@ -131,7 +131,8 @@ def plot_feature_diagram(out_path: str) -> None:
     )
 
     # ── Left: attention matrix with overlays ──────────────────────────────────
-    im = ax_mat.imshow(attn, cmap="Blues", aspect="equal")
+    # Grey base so coloured overlays are clearly distinguishable.
+    im = ax_mat.imshow(attn, cmap="Greys", aspect="equal", vmin=0)
     ax_mat.set_xticks(range(n))
     ax_mat.set_yticks(range(n))
     ax_mat.set_xticklabels(tokens, fontsize=10)
@@ -142,23 +143,23 @@ def plot_feature_diagram(out_path: str) -> None:
     plt.colorbar(im, ax=ax_mat, shrink=0.8, label="Attention weight")
 
     CLS_COLOR  = "#e74c3c"
-    DIAG_COLOR = "#27ae60"
-    ENT_COLOR  = "#8e44ad"
+    DIAG_COLOR = "#2ecc71"
+    ENT_COLOR  = "#9b59b6"
 
     # Red overlay on CLS row (row 0) → cls_mean, cls_max, cls_std
     ax_mat.add_patch(mpatches.Rectangle(
-        (-0.5, -0.5), n, 1, lw=2.5, ec=CLS_COLOR, fc=CLS_COLOR, alpha=0.2
+        (-0.5, -0.5), n, 1, lw=3, ec="#c0392b", fc=CLS_COLOR, alpha=0.55, zorder=2
     ))
 
     # Green overlay on diagonal → diag_mean
     for i in range(n):
         ax_mat.add_patch(mpatches.Rectangle(
-            (i - 0.5, i - 0.5), 1, 1, lw=2, ec=DIAG_COLOR, fc=DIAG_COLOR, alpha=0.3
+            (i - 0.5, i - 0.5), 1, 1, lw=2.5, ec="#27ae60", fc=DIAG_COLOR, alpha=0.65, zorder=2
         ))
 
     # Purple border around full matrix → head_entropy (spans all rows/heads)
     ax_mat.add_patch(mpatches.Rectangle(
-        (-0.5, -0.5), n, n, lw=2.5, ec=ENT_COLOR, fc="none"
+        (-0.5, -0.5), n, n, lw=4, ec=ENT_COLOR, fc="none", zorder=3
     ))
 
     # ── Right: feature legend ─────────────────────────────────────────────────
