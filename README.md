@@ -80,7 +80,7 @@ all combinations that do/don't contain it). Red = helpful, blue = harmful.
 Each cell shows our best attention-only AUROC minus the paper's BERT embedding
 baseline for that detector. Red = attention beats embeddings, blue = embeddings win.
 
-![Gain vs BERT baseline](figures/gain_vs_bert.png)
+![Gain vs BERT baseline](figures/gain_vs_bert.png?v=2)
 
 ## Key Findings
 
