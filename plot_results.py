@@ -84,7 +84,7 @@ def plot_gain_vs_bert(dfs: dict[str, pd.DataFrame], out_path: str) -> None:
     gain_rows = {}
     for ds in DATASETS:
         d = dfs[ds]
-        attn_only = d[d["has_cls_token_raw"] == 0]
+        attn_only = d[(d["has_cls_token_raw"] == 0) & (d["has_cls_token_pca"] == 0)]
         gains = {}
         for det in DETECTORS:
             sub = attn_only[attn_only["detector"] == det]
