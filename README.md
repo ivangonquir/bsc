@@ -93,6 +93,32 @@ baseline for that detector. Red = attention beats embeddings, blue = embeddings 
 - **Sub-additive interaction**: `cls_token × head_entropy` is redundant in 12/24
   dataset × detector cells — they capture overlapping distributional signal.
 
+## Factorial Design Analysis
+
+The 64 combinations per detector form a near-complete **2⁶ factorial design** over
+6 binary factors (`cls_token_pca` + 5 attention blocks). Only the all-zero cell
+(empty feature set) is missing; `cls_token_raw` is excluded from the factorial
+because it is never combined with other features.
+
+The analysis is split into four parts, all using OLS with HC3 heteroscedasticity-
+robust standard errors and Benjamini–Hochberg FDR correction across the full
+family of tests.
+
+| Part | What it estimates |
+|------|------------------|
+| **1. Main effects** | Average AUROC change from adding each feature, per (dataset, detector) cell. High R² means main effects dominate; low R² means interactions matter. |
+| **2. Feature regimes** | Consistency of each feature's effect across all 24 (dataset × detector) cells — how often it is significantly positive, negative, or neutral. |
+| **3. Two-way interactions** | Which feature pairs synergize (joint effect > sum of parts) or interfere (redundant / conflicting), FDR < 0.05. |
+| **4. Cross-dataset heterogeneity** | F-test of whether each detector's feature coefficients differ across datasets. Significant result means feature effects are dataset-dependent. |
+
+**Outputs** (written to the project root):
+
+- `factorial_main_effects.csv` — per-(dataset, detector, feature) coefficients and FDR-corrected p-values
+- `factorial_model_fit.csv` — R² and adjusted R² per cell
+- `factorial_feature_regimes.csv` — regime summary across 24 cells
+- `factorial_interactions.csv` — all two-way interaction terms with synergy/interference label
+- `factorial_dataset_heterogeneity.csv` — per-detector F-statistic and dataset-dependence flag
+
 ## Installation
 
 ```bash
